@@ -77,25 +77,25 @@ blueprint:
 
     ```
 
-    Játszd le a Pink Floyd előadót a konyhában
+    Játszd le a Pink Floyd előadót a konyha szobában
 
-    Indítsd el a Jagged Little Pill albumot a dolgozószobában
+    Indítsd el a Jagged Little Pill albumot a dolgozó szobában
 
-    Hallgatnám a Greatest Hits albumot a James Taylor előadótól a konyhában
+    Hallgatnám a Greatest Hits albumot a James Taylor előadótól a konyha hangszórón
 
-    Kapcsold be a New Years Day számot a hálószobában
+    Kapcsold be a New Years Day számot a hálószoba helyiségben
 
-    Játszd le a New Years Day számot a hálószobában rádió módban
+    Játszd le a New Years Day számot a hálószoba hangszórón rádió módban
 
-    Szóljon az A Hard Days Night dal a Billy Joel előadótól a hálószobában
+    Szóljon az A Hard Days Night dal a Billy Joel előadótól a hálószoba szobában
 
-    Hallgatnék Classic Rock lejátszási listát a dolgozószobában
+    Hallgatnék Classic Rock lejátszási listát a dolgozó szobában
 
-    Menjen a BBC Radio 1 rádióállomás a hálószobában
+    Menjen a BBC Radio 1 rádióállomás a hálószoba
 
-    Indítsd el a Classical Nights albumot a hálószobai Sonos hangszórón
+    Indítsd el a Classical Nights albumot a nappali hangszórón
 
-    Hallgatnám a Classical Nights lemezt a hálószobai Sonos hangszórón
+    Hallgatnám a Classical Nights lemezt a nappali
 
     Játszd le az U2 zenekart
 
@@ -103,9 +103,9 @@ blueprint:
 
     Keverj Muse dalt
 
-    Keverj Classical Nights albumot a hálószobai Sonos hangszórón
+    Keverj Classical Nights albumot a fürdő szobában
 
-    Kapcsold be a Roadside Picnic hangoskönyvet
+    Kapcsold be a Roadside Picnic hangoskönyvet a nappali lejátszón
 
     ```'
   input:
@@ -142,12 +142,12 @@ blueprint:
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
             (albumot|lemezt|kislemezt|nagylemezt) [[a |az ]{artist} (előadótól|zenésztől|bandától|egyűttestől|zenekartól)]
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
-            módban) {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (album|lemez|kislemez|nagylemez)
             [[a |az ]{artist} (előadótól|zenésztől|bandától|egyűttestől|zenekartól)]
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
-            {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
         track_trigger:
           name: Szám aktiváló
           description: Aktiváló mondatok egy adott szám lejátszásához.
@@ -158,12 +158,12 @@ blueprint:
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
             (számot|dalt) [[a |az ]{artist} (előadótól|zenésztől|bandától|egyűttestől|zenekartól)]
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
-            módban) {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (szám|dal)
             [[a |az ]{artist} (előadótól|zenésztől|bandától|egyűttestől|zenekartól)]
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
-            {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
         artist_trigger:
           name: Előadó aktiváló
           description: Aktiváló mondatok egy adott előadó zenéjének lejátszásához.
@@ -173,11 +173,10 @@ blueprint:
               multiple: true
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
-            (előadót|zenészt|bandát|együttest|zenekart) [(a |az |ban |ben |on |ön |en
-            ){area_or_player_name}][ (rádió|rádió módban) {radio_mode}]
+            (előadót|zenészt|bandát|együttest|zenekart) [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][ (rádió|rádió módban) {radio_mode}]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (előadó|zenész|banda|együttes|zenekar)
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
-            {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
         audiobook_trigger:
           name: Hangoskönyv aktiváló
           description: Aktiváló mondatok egy hangoskönyv lejátszásához.
@@ -187,9 +186,9 @@ blueprint:
               multiple: true
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ]{media_name}
-            (hangoskönyvet|könyvet) [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+            (hangoskönyvet|könyvet) [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (hangoskönyv|könyv)
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]]
         radio_trigger:
           name: Rádió aktiváló
           description: Aktiváló mondatok egy rádióállomás lejátszásához.
@@ -199,10 +198,9 @@ blueprint:
               multiple: true
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ]{media_name}
-            (rádióállomást|rádiót|rádióadót|állomást) [(a |az |ban |ben |on |ön |en
-            ){area_or_player_name}]
+            (rádióállomást|rádiót|rádióadót|állomást) [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (rádióállomás|rádió|rádióadó|állomás)
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]]
         playlist_trigger:
           name: Lejátszási lista aktiváló
           description: Aktiváló mondatok egy lejátszási lista lejátszásához.
@@ -212,11 +210,11 @@ blueprint:
               multiple: true
           default:
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
-            (lejátszási listát|playlistet) [(a |az |ban |ben |on |ön |en ){area_or_player_name}][
+            (lejátszási listát|playlistet) [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
             (rádió|rádió módban) {radio_mode}]
           - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (lejátszási lista|playlist)
-            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
-            {radio_mode}]
+            [(a |az ){area_or_player_name}[ szobában| helyiségben| hangszórón| lejátszón| szobán]][
+            (rádió|rádió módban) {radio_mode}]
         response_input:
           name: Válasz az Asszisztenstől
           description: Az Asszisztens által adott válasz.
