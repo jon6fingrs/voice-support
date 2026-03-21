@@ -536,7 +536,8 @@ actions:
   response_variable: result
 - alias: LLM eredmény releváns részének tárolása változóban és céleszköz meghatározása
   variables:
-    llm_result: '{{ result.response.speech.plain.speech | from_json }}'
+    llm_result: '{{ result.response.speech.plain.speech | regex_replace("```(?:json)?\\s*", "")
+      | regex_replace("\\s*```\\s*$", "") | trim | from_json }}'
     play_continuously: !input play_continuously
     llm_action_data:
       media_id: '{{ llm_result.action_data.media_id }}'
