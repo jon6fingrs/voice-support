@@ -10,34 +10,42 @@ blueprint:
 
     #### Kötelező
 
-    * Állíts be egy `Alapértelmezett lejátszót`, amelyet akkor használ a rendszer, ha
+    * Állítson be egy `Alapértelmezett lejátszót`, amelyet akkor használ a rendszer, ha
     a kérésben nem szerepel céleszköz, és a kérés nem olyan területről érkezik, ahol
     Music Assistant lejátszó található.
 
     #### Opcionális
 
-    * Módosítsd az aktiváló mondatokat vagy adj hozzá újakat, ezzel a saját nyelvedre
-    is lefordíthatod a mondatokat.
+    * Módosítsa az aktiváló mondatokat vagy adjon hozzá újakat, ezzel a saját nyelvére
+    is lefordíthatja a mondatokat.
 
-    * Módosítsd a válaszokat vagy fordítsd le a saját nyelvedre.
+    * Módosítsa a válaszokat vagy fordítsa le a saját nyelvére.
 
 
     ### Használat
 
-    Minden mondatnak:
+    Minden mondatnak az alábbi szavak egyikével kell kezdődnie:
 
-    * a `Játszd le`, `Játszd`, `Keverj`, `Lejátszás` vagy `Hallgassuk` szóval kell
-    kezdődnie, amelyet a médiatípus követ: `előadó`/`szám`/`album`/`lejátszási lista`/`rádió`,
-    majd a kívánt elem neve. Ha a mondat a `Keverj` szóval kezdődik, a lejátszó véletlenszerű
-    sorrendben játssza le a számokat, egyébként kikapcsolja a keverést.
+    * `Játszd le`, `Indítsd el`, `Kapcsold be` (felszólító mód)
 
-    * album és szám esetén opcionálisan követheti a `tőle` vagy `előadótól` kifejezés
-    és az előadó neve
+    * `Szóljon`, `Menjen` (felszólító, E/3)
+
+    * `Hallgatnám`, `Hallgatnék` (feltételes mód)
+
+    * `Keverj` (keverés bekapcsolásával)
+
+    Ezután a médiatípus következik: `előadó`/`szám`/`album`/`lejátszási lista`/`rádió`,
+    majd a kívánt elem neve.
+
+    * album és szám esetén opcionálisan követheti az előadó neve (pl. `tőle`, `előadótól`)
 
     * ezután opcionálisan megadható a terület vagy az eszköz neve
 
     * előadó, szám, album és lejátszási lista esetén opcionálisan követheti
     a `rádió módban` kifejezés
+
+    Ha a mondat a `Keverj` szóval kezdődik, a lejátszó véletlenszerű
+    sorrendben játssza le a számokat, egyébként kikapcsolja a keverést.
 
     #### Elfogadott változatok
 
@@ -64,31 +72,31 @@ blueprint:
 
     Játszd le az előadót Pink Floyd a konyhában
 
-    Hallgassuk az albumot Jagged Little Pill a dolgozószobában
+    Indítsd el az albumot Jagged Little Pill a dolgozószobában
 
-    Hallgassuk az albumot Greatest Hits az előadótól James Taylor a konyhában
+    Hallgatnám az albumot Greatest Hits az előadótól James Taylor a konyhában
 
-    Játszd le a számot New Years Day a hálószobában
+    Kapcsold be a számot New Years Day a hálószobában
 
-    Játszd le a számot New Years Day a hálószobában rádió módban
+    Szóljon a dal A Hard Days Night az előadótól Billy Joel a hálószobában
 
-    Játszd le a dalt A Hard Days Night az előadótól Billy Joel a hálószobában
+    Hallgatnék lejátszási listát Classic Rock a dolgozószobában
 
-    Hallgassuk a lejátszási listát Classic Rock a dolgozószobában
+    Menjen a rádióállomás BBC Radio 1 a hálószobában
 
-    Hallgassuk a rádióállomást BBC Radio 1 a hálószobában
+    Indítsd el az albumot Classical Nights a hálószobai Sonos hangszórón
 
-    Játszd le az albumot Classical Nights a hálószobai Sonos hangszórón
-
-    Hallgassuk a lemezt Classical Nights a hálószobai Sonos hangszórón
+    Hallgatnám a lemezt Classical Nights a hálószobai Sonos hangszórón
 
     Játszd le a zenekart U2
 
-    Keverj dalokat a Muse-tól.
+    Szóljon az együttes Muse
 
-    Keverj az albumból Classical Nights a hálószobai Sonos hangszórón
+    Keverj dalt a Muse-tól
 
-    Játszd le a hangoskönyvet Roadside Picnic
+    Keverj albumot Classical Nights a hálószobai Sonos hangszórón
+
+    Kapcsold be a hangoskönyvet Roadside Picnic
 
     ```'
   input:
@@ -104,14 +112,14 @@ blueprint:
     trigger_response_settings:
       name: Aktiválás és válaszbeállítások az Asszisztenshez
       icon: mdi:chat
-      description: 'Ezekben a beállításokban módosíthatod a meglévő aktiváló mondatokat
-        vagy hozzáadhatsz újakat. A szögletes zárójelek [ ] közé zárt szöveg opcionális.
-        A kerek zárójelek ( ) és a függőleges vonal | segítségével több értéket adhatsz
+      description: 'Ezekben a beállításokban módosíthatja a meglévő aktiváló mondatokat
+        vagy hozzáadhat újakat. A szögletes zárójelek [ ] közé zárt szöveg opcionális.
+        A kerek zárójelek ( ) és a függőleges vonal | segítségével több értéket adhat
         meg, amelyek ''vagy'' kapcsolatban állnak. A { lekérdezés } egy helyettesítő
         érték, amely a kért médiát és opcionálisan a területet vagy Music Assistant
         lejátszót tartalmazza.
 
-        Beállíthatod az Asszisztens válaszait is. A válaszok jinja sablonokat használnak,
+        Beállíthatja az Asszisztens válaszait is. A válaszok jinja sablonokat használnak,
         amelyekbe a médiaadatok és a Music Assistant lejátszó neve kerül.'
       collapsed: true
       input:
@@ -123,7 +131,11 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (keverj|játszd le|játszd|hallgassuk|lejátszás) [a |az ](albumot|albumát|lemezt|kislemezt|nagylemezt)
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](albumot|albumát|lemezt|kislemezt|nagylemezt)
+            {media_name} [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
+            {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
+            módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ](album|lemez|kislemez|nagylemez)
             {media_name} [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
             {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
             módban) {radio_mode}]
@@ -135,9 +147,14 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (keverj|játszd le|játszd|hallgassuk|lejátszás) [a |az ](számot|dalt) {media_name}
-            [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar) {artist}] [(a
-            |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban) {radio_mode}]
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](számot|dalt)
+            {media_name} [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
+            {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
+            módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ](szám|dal) {media_name}
+            [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar) {artist}]
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
         artist_trigger:
           name: Előadó aktiváló
           description: Aktiváló mondatok egy adott előadó zenéjének lejátszásához.
@@ -146,7 +163,10 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (keverj|játszd le|játszd|hallgassuk|lejátszás) [a |az ](előadót|zenészt|bandát|együttest|zenekart)
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](előadót|zenészt|bandát|együttest|zenekart)
+            {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
+            módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ](előadó|zenész|banda|együttes|zenekar)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
             módban) {radio_mode}]
         audiobook_trigger:
@@ -157,7 +177,9 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (játszd le|játszd|hallgassuk|lejátszás) [a |az ](hangoskönyvet|könyvet) {media_name}
+          - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ](hangoskönyvet|könyvet)
+            {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+          - (szóljon|menjen|hallgatnék) [a |az ](hangoskönyv|könyv) {media_name}
             [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
         radio_trigger:
           name: Rádió aktiváló
@@ -167,7 +189,9 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (keverj|játszd le|játszd|hallgassuk|lejátszás) [a |az ](rádióállomást|rádiót|rádióadót|állomást)
+          - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ](rádióállomást|rádiót|rádióadót|állomást)
+            {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+          - (szóljon|menjen|hallgatnék) [a |az ](rádióállomás|rádió|rádióadó|állomás)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
         playlist_trigger:
           name: Lejátszási lista aktiváló
@@ -177,9 +201,12 @@ blueprint:
               multiline: false
               multiple: true
           default:
-          - (keverj|játszd le|játszd|hallgassuk|lejátszás) [a |az ](lejátszási listát|playlistet)
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](lejátszási listát|playlistet)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
             módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ](lejátszási lista|playlist) {media_name}
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
         response_input:
           name: Válasz az Asszisztenstől
           description: Az Asszisztens által adott válasz.
@@ -187,9 +214,9 @@ blueprint:
             text:
               multiline: false
               multiple: false
-          default: '{{ ''Keverés:'' if ''keverj'' in trigger.sentence | lower else ''''}}
-            {{ trigger.slots.media_name }} {{ '''' if ''keverj'' in trigger.sentence |
-            lower else ''lejátszása''}} ezen: {{ mass_player_name }}'
+          default: '{{ ''Keverem'' if ''keverj'' in trigger.sentence | lower else
+            ''Lejátszom''}} — {{ trigger.slots.media_name }} — {{ mass_player_name
+            }}'
 triggers:
 - trigger: conversation
   command: !input album_trigger
