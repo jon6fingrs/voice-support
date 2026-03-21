@@ -34,8 +34,13 @@ blueprint:
 
     * `Keverj` (keverés bekapcsolásával)
 
-    Ezután a médiatípus következik: `előadó`/`szám`/`album`/`lejátszási lista`/`rádió`,
-    majd a kívánt elem neve.
+    Ezután a médiatípus és a kívánt elem neve következik. A szórend kétféle lehet:
+
+    * `Játszd le az albumot Classical Nights` (médiatípus elöl)
+
+    * `Játszd le a Classical Nights albumot` (név elöl, természetesebb)
+
+    Mindkét szórend elfogadott, de a név elöl változat a gyakoribb a magyar nyelvben.
 
     * album és szám esetén opcionálisan követheti az előadó neve (pl. `tőle`, `előadótól`)
 
@@ -70,33 +75,39 @@ blueprint:
 
     ```
 
+    Játszd le a Pink Floyd előadót a konyhában
+
+    Indítsd el a Jagged Little Pill albumot a dolgozószobában
+
+    Hallgatnám a Greatest Hits albumot az előadótól James Taylor a konyhában
+
+    Kapcsold be a New Years Day számot a hálószobában
+
+    Játszd le a New Years Day számot a hálószobában rádió módban
+
+    Szóljon az A Hard Days Night dal az előadótól Billy Joel a hálószobában
+
+    Hallgatnék Classic Rock lejátszási listát a dolgozószobában
+
+    Menjen a BBC Radio 1 rádióállomás a hálószobában
+
+    Indítsd el a Classical Nights albumot a hálószobai Sonos hangszórón
+
+    Hallgatnám a Classical Nights lemezt a hálószobai Sonos hangszórón
+
+    Játszd le az U2 zenekart
+
+    Szóljon a Muse együttes
+
+    Keverj Muse dalt
+
+    Keverj Classical Nights albumot a hálószobai Sonos hangszórón
+
+    Kapcsold be a Roadside Picnic hangoskönyvet
+
     Játszd le az előadót Pink Floyd a konyhában
 
     Indítsd el az albumot Jagged Little Pill a dolgozószobában
-
-    Hallgatnám az albumot Greatest Hits az előadótól James Taylor a konyhában
-
-    Kapcsold be a számot New Years Day a hálószobában
-
-    Szóljon a dal A Hard Days Night az előadótól Billy Joel a hálószobában
-
-    Hallgatnék lejátszási listát Classic Rock a dolgozószobában
-
-    Menjen a rádióállomás BBC Radio 1 a hálószobában
-
-    Indítsd el az albumot Classical Nights a hálószobai Sonos hangszórón
-
-    Hallgatnám a lemezt Classical Nights a hálószobai Sonos hangszórón
-
-    Játszd le a zenekart U2
-
-    Szóljon az együttes Muse
-
-    Keverj dalt a Muse-tól
-
-    Keverj albumot Classical Nights a hálószobai Sonos hangszórón
-
-    Kapcsold be a hangoskönyvet Roadside Picnic
 
     ```'
   input:
@@ -131,6 +142,14 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
+            (albumot|albumát|lemezt|kislemezt|nagylemezt) [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
+            {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
+            módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (album|lemez|kislemez|nagylemez)
+            [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar) {artist}]
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](albumot|albumát|lemezt|kislemezt|nagylemezt)
             {media_name} [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
             {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
@@ -147,6 +166,14 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
+            (számot|dalt) [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
+            {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
+            módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (szám|dal)
+            [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar) {artist}]
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](számot|dalt)
             {media_name} [az előadótól [a |az ](előadó|zenész|banda|együttes|zenekar)
             {artist}] [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
@@ -163,6 +190,12 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
+            (előadót|zenészt|bandát|együttest|zenekart) [(a |az |ban |ben |on |ön |en
+            ){area_or_player_name}][ (rádió|rádió módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (előadó|zenész|banda|együttes|zenekar)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](előadót|zenészt|bandát|együttest|zenekart)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
             módban) {radio_mode}]
@@ -177,6 +210,10 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ]{media_name} (hangoskönyvet|könyvet)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (hangoskönyv|könyv)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ](hangoskönyvet|könyvet)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
           - (szóljon|menjen|hallgatnék) [a |az ](hangoskönyv|könyv) {media_name}
@@ -189,6 +226,10 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ]{media_name} (rádióállomást|rádiót|rádióadót|állomást)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (rádióállomás|rádió|rádióadó|állomás)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám) [a |az ](rádióállomást|rádiót|rádióadót|állomást)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}]
           - (szóljon|menjen|hallgatnék) [a |az ](rádióállomás|rádió|rádióadó|állomás)
@@ -201,6 +242,12 @@ blueprint:
               multiline: false
               multiple: true
           default:
+          - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ]{media_name}
+            (lejátszási listát|playlistet) [(a |az |ban |ben |on |ön |en ){area_or_player_name}][
+            (rádió|rádió módban) {radio_mode}]
+          - (szóljon|menjen|hallgatnék) [a |az ]{media_name} (lejátszási lista|playlist)
+            [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió módban)
+            {radio_mode}]
           - (játszd le|indítsd el|kapcsold be|hallgatnám|keverj) [a |az ](lejátszási listát|playlistet)
             {media_name} [(a |az |ban |ben |on |ön |en ){area_or_player_name}][ (rádió|rádió
             módban) {radio_mode}]
