@@ -121,6 +121,21 @@ blueprint:
               custom_value: false
               sort: false
           default: Use player settings
+        satellite_player_mapping:
+          name: Satellite to Player Mapping
+          description: >
+            A mapping of area IDs to Music Assistant player entity IDs.
+            When a voice command comes from a mapped area and no explicit
+            player is requested, the mapped player will be used instead
+            of playing to the area. If no mapping exists for the area,
+            it falls back to area-based playback, then the default player.
+            Example:
+              bedroom: media_player.ma_bedroom_speaker
+              living_room: media_player.ma_living_room_speaker
+          selector:
+            object:
+          default: {}
+          
     prompt_settings:
       name: Prompt settings for the LLM
       icon: mdi:robot
@@ -356,39 +371,51 @@ sequence:
 - variables:
     version: 20250526
     default_player: !input default_player
+    satellite_mapping: !input satellite_player_mapping
     shuffle: '{{ shuffle | default(false, true) | bool(false) }}'
-    player_data: '{% set ma = integration_entities(''music_assistant'') %}
-
-      {% set ma_names = ma | map(''state_attr'', ''friendly_name'') | list %}
-
-      {% set ns = namespace(players=[]) %} {% for player in media_player | default([],
-      true) %}
-
-      {% if player in ma %}
-
-      {% set ns.players = ns.players + [player] %}
-
-      {% elif player in ma_names %}
-
-      {% set entity = ma | select(''is_state_attr'', ''friendly_name'', player) |
-      list %}
-
-      {% set ns.players = ns.players + entity %}
-
-      {% endif %}
-
+    player_data: >
+      {% set ma = integration_entities('music_assistant') %}
+      {% set ma_names = ma | map('state_attr', 'friendly_name') | list %}
+      {% set ns = namespace(players=[]) %}
+      {% for player in media_player | default([], true) %}
+        {% if player in ma %}
+          {% set ns.players = ns.players + [player] %}
+        {% elif player in ma_names %}
+          {% set entity = ma | select('is_state_attr', 'friendly_name', player) | list %}
+          {% set ns.players = ns.players + entity %}
+        {% endif %}
       {% endfor %}
-
-      {{ ns.players }}'
+      {{ ns.players }}
+    mapped_player: >
+      {% set areas = area | default([], true) %}
+      {% set areas = [areas] if areas is string else areas %}
+      {% if not player_data and areas | length == 1 %}
+        {{ satellite_mapping.get(areas[0], '') }}
+      {% endif %}
     target_data:
-      area_id: '{{ area | default(''NA'', true) }}'
-      entity_id: '{{ ''NA'' if area | default and not player_data else (player_data
-        or default_player) | default(''NA'', true) }}'
+      area_id: >
+        {% if player_data or mapped_player | default('') | trim != '' %}
+          NA
+        {% else %}
+          {{ area | default('NA', true) }}
+        {% endif %}
+      entity_id: >
+        {% if area | default and not player_data and mapped_player | default('') | trim == '' %}
+          NA
+        {% elif player_data %}
+          {{ player_data }}
+        {% elif mapped_player | default('') | trim != '' %}
+          {{ mapped_player | trim }}
+        {% elif default_player %}
+          {{ default_player }}
+        {% else %}
+          NA
+        {% endif %}
     invalid_target:
       response: Unable to find valid target
 - if:
   - condition: template
-    value_template: '{{ not (area | default or player_data or default_player) }}'
+    value_template: '{{ not (area | default or player_data or mapped_player | default("") | trim or default_player) }}'
   then:
   - stop: No valid target for Music Assistant Voice script found
     response_variable: invalid_target
