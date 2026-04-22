@@ -534,8 +534,15 @@ actions:
     device_area: '{{ area_id(trigger.device_id) if area_name(trigger.device_id) in
       area_names.split('', '') }}'
     default_player: !input default_player
-    backup_target: '{{ (dict(area_id=[device_area]) if device_area) or (dict(entity_id=[default_player])
-      if default_player) }}'
+    mapped_player: >-
+      {% set area_key = area_name(trigger.device_id) | default('', true) | lower | replace(' ', '_') %}
+      {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
+      {{ mapping.get(area_key, '') }}
+    backup_target: >-
+      {{ (dict(entity_id=[mapped_player]) if mapped_player)
+         or (dict(area_id=[device_area]) if device_area)
+         or (dict(entity_id=[default_player]) if default_player) }}
+
     target_data: '{{ (llm_target_data if llm_target else backup_target) | default({},
       true) }}'
     target: '{{ dict(target_data.items() | selectattr(''1'')) }}'
