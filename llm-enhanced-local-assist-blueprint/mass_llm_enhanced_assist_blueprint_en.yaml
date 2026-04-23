@@ -500,11 +500,9 @@ actions:
   variables:
     llm_result: >-
       {% set raw = result.response.speech.plain.speech %}
-      {% set cleaned = raw
-        | regex_replace('```json\s*', '')
-        | regex\_replace('```\s*', '')
-        | trim %}
+      {% set cleaned = raw.replace('```json', '').replace('```', '').strip() %}
       {{ cleaned | from_json }}
+
     play_continuously: !input play_continuously
     llm_action_data:
       media_id: '{{ llm_result.action_data.media_id }}'
