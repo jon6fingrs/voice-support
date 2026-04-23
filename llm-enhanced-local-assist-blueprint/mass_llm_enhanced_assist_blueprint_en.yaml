@@ -550,20 +550,19 @@ actions:
     target: '{{ dict(target_data.items() | selectattr(''1'')) }}'
 - alias: Only try to play music when target was determined
   if:
-    - alias: Check if it was possible to determine a target
-      condition: template
-      value_template: '{{ iif(target) }}'
+  - alias: Check if it was possible to determine a target
+    condition: template
+    value_template: '{{ iif(target) }}'
   then:
-    - alias: Play Music based on LLM result
-      action: music_assistant.play_media
-      data: "{{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}"
-      target: "{{ target }}"
-      continue_on_error: true
-    - alias: Enable/Disable shuffle on a Music Assistant Media Player
-      action: media_player.shuffle_set
-      data:
-        shuffle: '{{ shuffle }}'
-      target: '{{ target }}'
+  - alias: Play Music based on LLM result
+    action: music_assistant.play_media
+    data: '{{ dict(llm_action_data.items() | rejectattr(''1'', ''eq'', ''NA'')) }}'
+    target: '{{ target }}'
+  - alias: Enable/Disable shuffle on a Music Assistant Media Player
+    action: media_player.shuffle_set
+    data:
+      shuffle: '{{ shuffle }}'
+    target: '{{ target }}'
 - alias: Set variables for responses
   variables:
     combine: !input combine_text
