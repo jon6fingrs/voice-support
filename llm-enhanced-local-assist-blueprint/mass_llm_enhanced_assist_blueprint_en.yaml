@@ -564,7 +564,7 @@ actions:
       - alias: Notify user of failure via TTS
         action: tts.speak
         data:
-         message: >-
+          message: >-
             Sorry, I couldn't find {{ llm_action_data.media_id }} as a
             {{ llm_action_data.media_type }} to play. Please check your music
             library or streaming provider.
