@@ -498,10 +498,8 @@ actions:
   response_variable: result
 - alias: Store relevant part of LLM result in variable and define target
   variables:
-    llm_result: >-
-      {% set raw = result.response.speech.plain.speech %}
-      {% set cleaned = raw.replace('```json', '').replace('```', '').strip() %}
-      {{ cleaned | from_json }}
+    llm_result: "{% set raw = result.response.speech.plain.speech %}{% set cleaned = raw.replace('`','').replace('json','',1).strip() %}{{ cleaned | from_json }}"
+
 
     play_continuously: !input play_continuously
     llm_action_data:
