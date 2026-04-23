@@ -567,12 +567,11 @@ actions:
       then:
         - alias: Tell the user it failed
           set_conversation_response: "Sorry, I couldn't find {{ llm_action_data.media_id }} to play. Please check your music library or streaming provider."
-
-  - alias: Enable/Disable shuffle on a Music Assistant Media Player
-    action: media_player.shuffle_set
-    data:
-      shuffle: '{{ shuffle }}'
-    target: '{{ target }}'
+    - alias: Enable/Disable shuffle on a Music Assistant Media Player
+      action: media_player.shuffle_set
+      data:
+        shuffle: '{{ shuffle }}'
+      target: '{{ target }}'
 - alias: Set variables for responses
   variables:
     combine: !input combine_text
