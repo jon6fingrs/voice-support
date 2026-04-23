@@ -559,14 +559,6 @@ actions:
       data: "{{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}"
       target: "{{ target }}"
       continue_on_error: true
-      response_variable: play_result
-    - alias: Notify user if playback failed
-      if:
-        - condition: template
-          value_template: "{{ play_result is not defined or (play_result is mapping and play_result.get('error')) }}"
-      then:
-        - alias: Tell the user it failed
-          set_conversation_response: "Sorry, I couldn't find {{ llm_action_data.media_id }} to play. Please check your music library or streaming provider."
     - alias: Enable/Disable shuffle on a Music Assistant Media Player
       action: media_player.shuffle_set
       data:
