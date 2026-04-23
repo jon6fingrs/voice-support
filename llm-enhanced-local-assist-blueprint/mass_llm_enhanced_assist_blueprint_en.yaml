@@ -555,9 +555,16 @@ actions:
     value_template: '{{ iif(target) }}'
   then:
   - alias: Play Music based on LLM result
-    action: music_assistant.play_media
-    data: '{{ dict(llm_action_data.items() | rejectattr(''1'', ''eq'', ''NA'')) }}'
-    target: '{{ target }}'
+    block:
+    - alias: Attempt to play music
+      action: music_assistant.play_media
+      data: '{{ dict(llm_action_data.items() | rejectattr(''1'', ''eq'', ''NA'')) }}'
+      target: '{{ target }}'
+    rescue:
+    - alias: Tell the user it failed
+      set_conversation_response: >-
+        Sorry, I couldn't find {{ llm_action_data.media_id }} to play.
+        Please check your music library or streaming provider.
   - alias: Enable/Disable shuffle on a Music Assistant Media Player
     action: media_player.shuffle_set
     data:
