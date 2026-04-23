@@ -555,23 +555,19 @@ actions:
       value_template: '{{ iif(target) }}'
   then:
     - alias: Play Music based on LLM result
-      block:
-        - alias: Attempt to play music
-          action: music_assistant.play_media
-          data: "{{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}"
-          target: "{{ target }}"
-      rescue:
-        - alias: Notify user of failure via TTS
-          action: tts.speak
-          data:
-            message: >-
-              Sorry, I couldn't find {{ llm_action_data.media_id }} as a
-              {{ llm_action_data.media_type }} to play. Please check your music
-              library or streaming provider.
-            media_player_entity_id: >-
-              {{ target.get('entity_id', []) | first | default('') }}
-          target:
-            entity_id: "{{ states('sensor.default_tts_engine') | default('tts.home_assistant_cloud', true) }}"
+      action: music_assistant.play_media
+      data: "{{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}"
+      target: "{{ target }}"
+      continue_on_error: true
+      response_variable: play_result
+    - alias: Notify user if playback failed
+      if:
+        - condition: template
+          value_template: "{{ play_result is not defined or (play_result is mapping and play_result.get('error')) }}"
+      then:
+        - alias: Tell the user it failed
+          set_conversation_response: "Sorry, I couldn't find {{ llm_action_data.media_id }} to play. Please check your music library or streaming provider."
+
   - alias: Enable/Disable shuffle on a Music Assistant Media Player
     action: media_player.shuffle_set
     data:
