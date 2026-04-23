@@ -555,9 +555,23 @@ actions:
     value_template: '{{ iif(target) }}'
   then:
   - alias: Play Music based on LLM result
-    action: music_assistant.play_media
-    data: '{{ dict(llm_action_data.items() | rejectattr(''1'', ''eq'', ''NA'')) }}'
-    target: '{{ target }}'
+    block:
+      - alias: Attempt to play music
+        action: music_assistant.play_media
+        data: "{{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}"
+        target: "{{ target }}"
+    rescue:
+      - alias: Notify user of failure via TTS
+        action: tts.speak
+        data:
+         message: >-
+            Sorry, I couldn't find {{ llm_action_data.media_id }} as a
+            {{ llm_action_data.media_type }} to play. Please check your music
+            library or streaming provider.
+          media_player_entity_id: >-
+            {{ target.get('entity_id', []) | first | default('') }}
+        target:
+          entity_id: "{{ states('sensor.default_tts_engine') | default('tts.home_assistant_cloud', true) }}"
   - alias: Enable/Disable shuffle on a Music Assistant Media Player
     action: media_player.shuffle_set
     data:
