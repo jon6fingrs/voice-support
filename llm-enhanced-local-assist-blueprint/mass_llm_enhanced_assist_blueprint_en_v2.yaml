@@ -651,118 +651,114 @@ actions:
     target: '{{ dict(target_data.items() | selectattr(''1'')) }}'
 
 # ─────────────────────────────────────────────────────────────────────
-# STEP 4: Handle clarification needed
+# STEP 4: If clarification is needed, build options and respond, then stop
 # ─────────────────────────────────────────────────────────────────────
-- alias: Check if clarification is needed
+- alias: Build clarification options
+  variables:
+    clarification_text: !input clarification_response
+    available_options: >-
+      {% set exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
+      {% set ns = namespace(names=[]) %}
+      {% for e in exposed if e.startswith('media_player.') %}
+        {% set fname = state_attr(e, 'friendly_name') | default(e, true) %}
+        {% set ns.names = ns.names + [fname] %}
+      {% endfor %}
+      {{ ns.names | join(', ') }}
+
+- alias: Respond with clarification and stop if needed
   if:
-  - alias: Clarification required?
-    condition: template
-    value_template: '{{ needs_clarification and not target }}'
+    - condition: template
+      value_template: '{{ needs_clarification and not target }}'
   then:
-  - alias: Build list of available players for clarification
-    variables:
-      clarification_text: !input clarification_response
-      available_options: >-
-        {% set exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
-        {% set ns = namespace(names=[]) %}
-        {% for e in exposed if e.startswith('media_player.') %}
-          {% set fname = state_attr(e, 'friendly_name') | default(e, true) %}
-          {% set ns.names = ns.names + [fname] %}
-        {% endfor %}
-        {{ ns.names | join(', ') }}
-  - alias: Respond with clarification message
-    set_conversation_response: >-
-      {{ clarification_text | replace('<options>', available_options) }}
-  else:
-  # ───────────────────────────────────────────────────────────────
-  # STEP 5: Play music if we have a target
-  # ───────────────────────────────────────────────────────────────
-  - alias: Only try to play music when target was determined
-    if:
-    - alias: Check if target exists
-      condition: template
+    - set_conversation_response: >-
+        {{ clarification_text | replace('<options>', available_options) }}
+    - stop: Clarification message sent
+
+# ─────────────────────────────────────────────────────────────────────
+# STEP 5: Play music if we have a target
+# ─────────────────────────────────────────────────────────────────────
+- alias: Play music if target exists
+  if:
+    - condition: template
       value_template: '{{ iif(target) }}'
-    then:
+  then:
     - alias: Play Music based on LLM result
       block:
-      - alias: Attempt to play music
-        action: music_assistant.play_media
-        data: >-
-          {{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}
-        target: '{{ target }}'
+        - alias: Attempt to play music
+          action: music_assistant.play_media
+          data: >-
+            {{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}
+          target: '{{ target }}'
       rescue:
-      - alias: Tell the user it failed
-        set_conversation_response: >-
-          Sorry, I couldn't find {{ llm_action_data.media_id }} to play.
-          Please check your music library or streaming provider.
+        - alias: Tell the user it failed
+          set_conversation_response: >-
+            Sorry, I couldn't find {{ llm_action_data.media_id }} to play.
+            Please check your music library or streaming provider.
+        - stop: Playback failed
     - alias: Enable/Disable shuffle on a Music Assistant Media Player
       action: media_player.shuffle_set
       data:
         shuffle: '{{ shuffle }}'
       target: '{{ target }}'
 
-  # ───────────────────────────────────────────────────────────────
-  # STEP 6: Build and set the response
-  # ───────────────────────────────────────────────────────────────
-  - alias: Set variables for responses
-    variables:
-      combine: !input combine_text
-      responses:
-        no_target: !input no_target_response
-        only_area: !input area_response
-        only_player: !input player_response
-        area_player: !input area_and_player_response
-      # Determine response type
-      # Since we now resolve areas to entity_ids, most responses
-      # will use "only_player". We keep area tracking for the
-      # response text.
-      has_area_names: '{{ llm_matched_area_names | length > 0 }}'
-      has_player_names: '{{ llm_target_players | length > 0 }}'
-      response: >-
-        {% if iif(target) %}
-          {% if has_area_names and has_player_names %}
-            area_player
-          {% elif has_area_names %}
-            only_area
-          {% elif has_player_names or target.get('entity_id') %}
-            only_player
-          {% else %}
-            only_area
-          {% endif %}
+# ─────────────────────────────────────────────────────────────────────
+# STEP 6: Build response variables
+# ─────────────────────────────────────────────────────────────────────
+- alias: Set variables for responses
+  variables:
+    combine: !input combine_text
+    responses:
+      no_target: !input no_target_response
+      only_area: !input area_response
+      only_player: !input player_response
+      area_player: !input area_and_player_response
+    has_area_names: '{{ llm_matched_area_names | length > 0 }}'
+    has_player_names: '{{ llm_target_players | length > 0 }}'
+    response: >-
+      {% if iif(target) %}
+        {% if has_area_names and has_player_names %}
+          area_player
+        {% elif has_area_names %}
+          only_area
+        {% elif has_player_names or target.get('entity_id') %}
+          only_player
         {% else %}
-          no_target
+          only_area
         {% endif %}
-      # Build display names for the response
-      area_list: >-
-        {% if llm_matched_area_names | length > 0 %}
-          {{ llm_matched_area_names }}
-        {% elif target.get('area_id') %}
-          {{ target.get('area_id', []) | map('area_name') | list }}
-        {% else %}
-          {{ [] }}
-        {% endif %}
-      area_info: >-
-        {{ area_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ area_list[-1]
-           if area_list | count > 2
-           else area_list | join(' ' ~ combine ~ ' ') }}
-      player_list: >-
-        {% if target.get('entity_id') %}
-          {{ target.get('entity_id') | map('state_attr', 'friendly_name') | list }}
-        {% else %}
-          {{ [] }}
-        {% endif %}
-      player_info: >-
-        {{ player_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ player_list[-1]
-           if player_list | count > 2
-           else player_list | join(' ' ~ combine ~ ' ') }}
-      media_info: >-
-        {{ llm_result.media_description
-           | default(llm_action_data.media_id, true) }}
-  - alias: Set response for Assist
-    set_conversation_response: >-
-      {{ responses[response.strip()]
-         | replace('<media_info>', media_info)
-         | replace('<area_info>', area_info)
-         | replace('<player_info>', player_info) }}
+      {% else %}
+        no_target
+      {% endif %}
+    area_list: >-
+      {% if llm_matched_area_names | length > 0 %}
+        {{ llm_matched_area_names }}
+      {% elif target.get('area_id') %}
+        {{ target.get('area_id', []) | map('area_name') | list }}
+      {% else %}
+        {{ [] }}
+      {% endif %}
+    area_info: >-
+      {{ area_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ area_list[-1]
+         if area_list | count > 2
+         else area_list | join(' ' ~ combine ~ ' ') }}
+    player_list: >-
+      {% if target.get('entity_id') %}
+        {{ target.get('entity_id') | map('state_attr', 'friendly_name') | list }}
+      {% else %}
+        {{ [] }}
+      {% endif %}
+    player_info: >-
+      {{ player_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ player_list[-1]
+         if player_list | count > 2
+         else player_list | join(' ' ~ combine ~ ' ') }}
+    media_info: >-
+      {{ llm_result.media_description
+         | default(llm_action_data.media_id, true) }}
+
+- alias: Set response for Assist
+  set_conversation_response: >-
+    {{ responses[response.strip()]
+       | replace('<media_info>', media_info)
+       | replace('<area_info>', area_info)
+       | replace('<player_info>', player_info) }}
 
 mode: parallel
