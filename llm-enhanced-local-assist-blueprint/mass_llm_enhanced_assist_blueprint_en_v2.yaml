@@ -1,30 +1,111 @@
-########################################################################
-# Music Assistant - LLM Enhanced Voice Support Blueprint (MODIFIED)
-#
-# CHANGES SUMMARY:
-#   1. LLM prompt now includes satellite_player_mapping and exposed
-#      media players so the LLM can fuzzy-match rooms/players.
-#   2. LLM prompt warns about captured lyrics/dialog in voice input.
-#   3. Target resolution uses satellite_player_mapping when an area
-#      is requested (not just for the trigger device fallback).
-#   4. If an area has no mapped default and multiple exposed players,
-#      the automation responds asking the user to pick one.
-#   5. LLM JSON output now includes a "confidence" field so the
-#      automation can detect when clarification is needed.
-#   6. After one failed match the automation returns a clear error
-#      with the list of available players/areas.
-########################################################################
-
 blueprint:
   domain: automation
-  name: Music Assistant - Local LLM Enhanced Voice Support Blueprint (Modified)
+  name: Music Assistant - Local LLM Enhanced Voice Support Blueprint
   source_url: https://github.com/music-assistant/voice-support/blob/main/llm-enhanced-local-assist-blueprint/mass_llm_enhanced_assist_blueprint_en.yaml
-  description: 'Modified blueprint with smart default player mapping, fuzzy matching, and lyrics warning.'
+  description: '![Image](https://github.com/music-assistant/voice-support/blob/main/assets/music-assistant.png?raw=true)
+
+    # Play media using voice commands with LLM assistance
+
+
+    ### Blueprint setup
+
+    #### Required
+
+    * Select an LLM conversation agent to be used with the automation. The blueprint
+    is intended to be used with an LLM conversation agent without control of the house.
+
+    #### Optional
+
+    * Set a `Default Player` to be used when no target is mentioned in the request
+    and the request doesn''t come from an area with a Music Assistant player.
+
+    * Change the setting for `Radio Mode`. By default this is set to use the `Don''t
+    stop the music` setting on the Music Assistant player.
+
+    * Change the trigger sentence or add more, you can also use this to translate
+    the sentence to your own language.
+
+    * Change the responses or translate them to your own language.
+
+    * Change the setting to expose area names and player names to the LLM, the default
+    setting is to send them. In case you change the settings in the blueprint and
+    do not expose the area names and player names to the LLM, the name must exactly
+    match the name of the area or player in Home Assistant. So when the area name
+    is _Bedroom Sophia_ it does not work if you say _Sophia''s Bedroom_ or when
+    the Speech to Text conversion uses _Sofia_ instead of _Sophia_. Unfortunately
+    aliases can''t be used in the automation, as there is no template to get the aliases
+    of areas or entities. Capitalization of words does''t matter, so _bedroom sophia_
+    will still match if the area name in Home Assistant is _Bedroom Sophia_
+
+    * Change the prompt which is used to have the LLM provide the correct data. You
+    don''t need to translate this if you use a different language.
+
+
+    ### Usage
+
+    All sentences must:
+
+    * start with the words `Shuffle`, `Play` or `Listen to` followed by a query about what you
+    want to play. If you start with `Shuffle`, the player that plays the request will have shuffle enabled as well,
+    otherwise shuffle will be turned off.
+
+    * then be optionally followed by one or more area names and/or one or more device
+    names to play the music on.
+
+    ### How the target for the media is determined:
+
+    1. In case one or more areas and/or one or more Music Assistant players are mentioned
+    in the request, these areas and/or players are used. In case you don''t expose
+    the names, and the area or player mentioned doesn''t match exactly with the area
+    or player name in Home Assistant, Assist will use the `No target response`.
+
+    2. If no target was mentioned in the request, the automation will first check
+    if the request came from a device in an area. If there is also a Music Assistant
+    player in that same area, the music will be played there.
+
+    3.  If no target was mentioned in the request and the voice satellite area could
+    also not be used, then the `Default Player` set in the blueprint will be used.
+    In case no `Default Player` is set, the `No target response` will be returned.
+
+
+    #### Examples
+
+    ```
+
+    Play the best songs from Pink Floyd in the kitchen
+
+    Listen Jagged Little Pill in the study
+
+    Listen to the album Greatest Hits by James Taylor in the kitchen
+
+    Play track New Years Day in the bedroom
+
+    Play A Hard Days Night by Billy Joel in the bedroom
+
+    Listen to the playlist Classic Rock in the study
+
+    Listen to BBC Radio 1 in the bedroom
+
+    Play the album Classical Nights on the Bedroom Sonos Speaker
+
+    Listen to the record Classical Nights on the Bedroom Sonos Speaker
+
+    Play songs by U2
+
+    Play music by the composer from oppenheimer
+
+    Play the album that has the nude baby swimming in the water on the cover
+
+    Shuffle songs by Muse.
+
+    Shuffle the album Classical Nights on the Bedroom Sonos Speaker
+
+    ```'
   homeassistant:
     min_version: 2024.10.0
   input:
     llm_agent:
-      name: LLM conversation agent
+      name: LLM converation agent
       description: The LLM agent you want to use to process the query
       selector:
         entity:
@@ -35,13 +116,16 @@ blueprint:
     music_assistant_settings:
       name: Settings for Music Assistant playback
       icon: mdi:music
-      description: Settings to adjust how Music Assistant playback is handled
+      description: You can use these settings to adjust how Music Assistant playback
+        is handled
       input:
         default_player:
           name: Default Player
-          description: >
-            Fallback player used only when no room mapping, area match, or
-            player match can be determined. Leave empty to return an error instead.
+          description: 'The default Music Assistant player which will be used in case
+            it is not clear from the request in which area or on which player the
+            request should be played
+
+            Leave empty in case you do not want a default player'
           selector:
             entity:
               filter:
@@ -52,11 +136,17 @@ blueprint:
           default:
         play_continuously:
           name: Radio Mode
-          description: >
-            Determines the "radio_mode" setting for play media.
-            "Use player settings" follows the player's "Don't stop the music" setting.
-            "Always" continuously adds new songs.
-            "Never" stops after the queued songs finish.
+          description: 'Determines if the "radio_mode" setting should be set for the
+            play media action.
+
+            When set to "Use player settings" it will use the "Don''t stop the music"
+            setting on the Music Assistant Player
+
+            When set to "Always" the player will continuously add new songs to the
+            playlist.
+
+            When set to "Never" the player will stop playing after the songs selected
+            by the LLM are finished.'
           selector:
             select:
               options:
@@ -70,15 +160,22 @@ blueprint:
     response_settings:
       name: Trigger and response settings for Assist
       icon: mdi:chat
-      description: >
-        Customize trigger sentences and responses.
-        <media_info>, <area_info>, <player_info> are replaced dynamically.
+      description: 'You can use this setting to set the responses Assist will give.
+        <media_info> will be replaced with a description of the requested media. You
+        can use <area_info> and <player_info> which will be replaced with the area
+        names or player names.
+
+        This section also allows you to use the script in a different language, by
+        translating these fields to your own language.'
       collapsed: true
       input:
         trigger:
           name: Conversation trigger sentences
-          description: >
-            Trigger patterns. [ ] = optional, ( | ) = alternatives, {query} = wildcard.
+          description: You can add more triggers or adjust them here. Put text between
+            square brackets [ ] to make it optional, With round brackets ( ) and a
+            pipe character | you can enter multiple values which are treated as 'or'.
+            { query } is a wildcard value which will contain the requested media and
+            optionally the area or Music Assistant player.
           selector:
             text:
               multiline: false
@@ -87,7 +184,10 @@ blueprint:
           - (shuffle|play|listen to) {query}
         combine_text:
           name: Combine word
-          description: Word used to join multiple areas/players (e.g. "and")
+          description: This word will be used in the response in case muliple areas
+            or players are targeted. So if you request media to be played in the living
+            room and in the kitchen, the response will mention 'living room <and>
+            kitchen'. <and> will be replaced with the value from this parameter.
           selector:
             text:
               multiline: false
@@ -95,7 +195,8 @@ blueprint:
           default: and
         no_target_response:
           name: No target response
-          description: Returned when no target could be determined
+          description: Assist will return this response if no target could be determined
+            and no default player is set
           selector:
             text:
               multiline: false
@@ -103,69 +204,62 @@ blueprint:
           default: No target could be determined and no default player is set
         area_response:
           name: Area response
+          description: Assist will return this response if there are only areas targeted
           selector:
             text:
               multiline: false
               multiple: false
-          default: >-
-            Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> in <area_info>
+          default: Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> in <area_info>
         player_response:
           name: Player response
+          description: Assist will return this response if there are only Music Assistant
+            players targeted
           selector:
             text:
               multiline: false
               multiple: false
-          default: >-
-            Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> on <player_info>
+          default: Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> on <player_info>
         area_and_player_response:
           name: Area and Player response
+          description: Assist will return this response if there are both areas and
+            players targeted
           selector:
             text:
               multiline: false
               multiple: false
-          default: >-
-            Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> in <area_info> and on <player_info>
-        # ── NEW: clarification response ──────────────────────────────
-        clarification_response:
-          name: Clarification response
-          description: >
-            Returned when the LLM could not confidently match a room or player.
-            <options> will be replaced with available player names.
-          selector:
-            text:
-              multiline: false
-              multiple: false
-          default: >-
-            I'm not sure which player you meant. Available players are: <options>. Please try again with one of these names.
-        # ─────────────────────────────────────────────────────────────
+          default: Now {{ 'shuffling' if 'shuffle' in trigger.sentence | lower else 'playing'}} <media_info> in <area_info> and on <player_info>
     prompt_settings:
       name: Prompt setting for the LLM
       icon: mdi:robot
-      description: Finetune prompts for your specific LLM model.
+      description: You can use this setting to finetune the prompts for your specific
+        LLM (model). In most cases the default should be fine.
       collapsed: true
       input:
         expose_players:
           name: Expose Music Assistant Players
-          description: Expose player names to the LLM for fuzzy matching
+          description: Disable to not expose the names of the Music Assistant players
+            to the LLM. In case this is disabled any area name used in the request
+            has to exactly match the area name in Home Assistant
           selector:
             boolean: {}
           default: true
         expose_areas:
           name: Expose areas with Music Assistant Players
-          description: Expose area names to the LLM for fuzzy matching
+          description: Disable to not expose the names of areas in which there is
+            a Music Assistant player to the LLM. In case this is disabled any player
+            name used in the request has to exactly match the player name in Home
+            Assistant
           selector:
             boolean: {}
           default: true
-        # ── MODIFIED: intro now includes lyrics/dialog warning ───────
         llm_prompt_intro:
           name: Introduction for LLM prompt
-          description: Introduction for the LLM including the lyrics/dialog warning
+          description: Introduction for the LLM to understand the goal of the conversation
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            You are an AI process that transforms a music search query into
+          default: 'You are an AI process that transforms a music search query into
             a structured JSON. For every query, you must research and provide specific
             details—such as titles, artist names, or album names—if they are not directly
             mentioned in the query. For example, if the query is "play the latest
@@ -174,35 +268,22 @@ blueprint:
             album, or playlist, provide details as appropriate without assuming unspecified
             specifics.
 
-
-            IMPORTANT WARNING: The voice command was captured by a voice assistant
-            and may contain fragments of song lyrics, TV dialog, podcast speech, or
-            other ambient audio that was playing nearby. These captured fragments can
-            appear mixed into the actual user command. Focus on identifying the parts
-            of the input that sound like an intentional music request (typically
-            following "play", "shuffle", or "listen to") and disregard any
-            nonsensical or out-of-place phrases that appear to be captured
-            background audio. If the entire input seems like captured media content
-            rather than a deliberate command, set "confidence" to "low".
+            This is the voice command query provided by the user: "{{ trigger.sentence
+            }}"
 
 
-            This is the voice command query provided by the user: "{{ trigger.sentence }}"
-
-
-            Here is the structured JSON that I expect in response
-            {"action_data": {"media_id":"name", "media_type":"type", "artist":"name",
-            "album":"name"}, "media_description": "description of media",
-            "target_data": {"areas": ["area name"], "players": ["player name"]},
-            "confidence": "high"}
-        # ─────────────────────────────────────────────────────────────
+            Here is the structured JSON that I expect in response {"action_data":
+            {"media_id":"name", "media_type":"type", "artist":"name", "album":"name"},
+            "media_description": "description of media", "target_data": {"areas":
+            ["area name"], "players": ["player name"]}}'
         llm_prompt_media_type:
           name: Media type LLM prompt
+          description: Explanation about the "media_type" parameter in the output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            The argument "media_type" is mandatory and must always be provided
+          default: 'The argument "media_type" is mandatory and must always be provided
             no matter what!
 
             "media_type" can only be one of 5 different values:
@@ -220,15 +301,15 @@ blueprint:
             media_type is mandatory and must always be provided. In case a request
             does not match any of these types, for example when music from a specific
             genre is requested, then use "track" and provide a list of matching songs
-            for the "media_id" parameter.
+            for the "media_id" parameter.'
         llm_prompt_media_id:
           name: Media ID LLM prompt
+          description: Explanation about the "media_id" paramter in the output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            The argument "media_id" is also mandatory and must always be provided
+          default: 'The argument "media_id" is also mandatory and must always be provided
             no matter what!
 
             media_id is the most specific from track, album, and artist.
@@ -252,30 +333,31 @@ blueprint:
 
             - If the search is a radio channel: Then media_id is the requested channel.
 
-            "media_id" is a mandatory argument and must always be provided.
+            "media_id" is a mandatory argument and must always be provided.'
         llm_prompt_artist_album:
           name: Artist and album LLM prompt
+          description: Explanation about the "album" and "artist" parameters in the
+            output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            In case it is needed, the fields "artist" and "album" can be used
+          default: 'In case it is needed, the fields "artist" and "album" can be used
             to further restrict the search.
 
             For example, if the input is "Hells Bells by ACDC", then the output should
             be {"action_data":{"media_id":"Hells Bells", "media_type":"track", "artist":"AC/DC"}}
 
             "artist" and "album" are optional and never used in the case of a playlist
-            search.
+            search.'
         llm_prompt_examples:
           name: Examples action data LLM prompt
+          description: Examples for the "action_data" of the output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            There can be several types of answers for the "action_data" dictionary.
+          default: 'There can be several types of answers for the "action_data" dictionary.
             Here are some examples:
 
             Just an artist >> {"action_data":{"media_id": "artist name", "media_type":"artist"}}.
@@ -293,149 +375,102 @@ blueprint:
             name", "media_type":"playlist"}}.
 
             Multiple tracks of different artists >> {"action_data":{"media_id": ["Artist name - Song
-            name", "Another artist name - Another song name"], "media_type":"track"}}.
+            name", "Another artist name - Another song name", "Another artist name
+            - Another song name"], "media_type":"track"}}.
 
             Multiple tracks of the same artist >> {"action_data":{"media_id": ["Song name", "Another
-            song name"], "artist": "artist name", "media_type":"track"}}
+            song name"], "artist": "artist name", "media_type":"track"}}'
         llm_prompt_media_description:
           name: Media description LLM prompt
+          description: Explanation on the "media_description" part of the output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            The "media_description" key is used to describe the media which
+          default: The "media_description" key is used to describe the media which
             will be played. This can be taken from the voice command query, but it
             should be only the part which is relevant for the media. So if the voice
-            request is "Play the best Queen songs on the living room player" the
-            value for "media_description" should be "the best Queen songs"
-        # ── MODIFIED: target prompt now includes mapping + exposed + fuzzy ──
+            request is "Play the best Queen songs on the living room player" the value
+            for "media_description" should be "the best Queen songs"
         llm_prompt_target:
           name: Target data LLM prompt
-          description: >
-            Explanation of "target_data". Now includes the room-to-default-player
-            mapping and all exposed media players for smart resolution.
+          description: Explanation of the "target_data" part of the output
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            The "target_data" key defines WHERE the music should be played.
+          default: 'The "target_data" key is used to define the information on which
+            the request should be played.
 
+            {% if expose_areas %}These are the area names which have a Music Assantant
+            player: {{ area_names }}. Only use these area names for the "target_data".
+            In case another area description is used in the request, try to map it
+            to one of these area names." {% endif %}
 
-            Here is the room-to-default-player mapping. Each key is a room
-            (with underscores instead of spaces) and the value is the default
-            media_player entity_id for that room:
+            In case the query requests the music to be played in one or more areas
+            {% if expose_areas %}in which a Music Assistant player is located{% endif
+            %}, use {"areas": ["area name"]} for "target_data". Always use a list
+            with area names, even when there is only one. {% if expose_areas %}Try
+            to match the areas mentioned in the request to the provided area names.
+            Only use area names from the list provided. {% else %}Do not include articles
+            like "the" at the start of the area name. So if the request is "Play music
+            from Queen in the kitchen" use "kitchen" as area name. Besides removing
+            the first article, use exactly what was provided in the request.{% endif
+            %}When no area is mentioned in the voice request{% if expose_areas %}
+            or no area could be matched{% endif %}, use {"areas":[]}
 
-            {{ (state_attr('sensor.satellite_player_mapping', 'mapping') or {}) | tojson }}
+            {% if expose_players %}These are the Music Assistant players in the system:
+            {{ player_names }}. Only use these names for the "target_data". In case
+            another player name is mentioned in the request, try to map it to one
+            of these player names.{% endif %}
 
-
-            Here are all media players exposed to voice control with their
-            friendly names:
-
-            {% set exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
-            {% set ns = namespace(players=[]) %}
-            {% for e in exposed if e.startswith('media_player.') %}
-              {% set fname = state_attr(e, 'friendly_name') | default(e, true) %}
-              {% set ns.players = ns.players + [{'entity_id': e, 'friendly_name': fname}] %}
-            {% endfor %}
-            {{ ns.players | tojson }}
-
-            {% if expose_areas %}
-            These are the area names which have a Music Assistant player:
-            {{ area_names }}.
-            {% endif %}
-
-            {% if expose_players %}
-            These are the Music Assistant player friendly names:
-            {{ player_names }}.
-            {% endif %}
-
-
-            RULES FOR TARGET RESOLUTION (follow in this order):
-
-            1. If the user names a specific player by its friendly name,
-               put that friendly name in {"players": ["friendly name"]}.
-               Use fuzzy matching: if the spoken name is close to a known
-               friendly name (e.g. "family room speaker" vs "Family Room Speaker 2",
-               or "Sophia's bedroom" vs "Bedroom Sophia"), match it to the
-               closest known name. Spelling variations from speech-to-text
-               (e.g. "Sofia" vs "Sophia", "Mira" vs "Meera") should also be
-               matched to the closest known name.
-
-            2. If the user names a room/area (e.g. "in the kitchen",
-               "in family room"), put the area name in {"areas": ["area name"]}.
-               Use fuzzy matching against the known area names listed above.
-               Normalize minor speech-to-text differences.
-
-            3. If the user does not mention any room or player, leave both
-               lists empty: {"areas": [], "players": []}.
-               The automation will fall back to the default player for the
-               room where the voice assistant is located.
-
-            4. You may specify multiple areas and/or multiple players if
-               the user requests playback in several locations.
-
-
-            When no area or player is mentioned, use {"areas":[], "players":[]}.
-
-            Do not include articles like "the" at the start of area or player names.
-        # ─────────────────────────────────────────────────────────────
-        # ── MODIFIED: confidence field + lyrics reminder in outro ────
+            In case the query requests the music to be played on one or more media
+            players, use {"players": ["player name"]} for "target_data". Always use
+            a list with player names, even when there is only one. {% if expose_players
+            %}Try to match the players mentioned in the request to the provided player
+            names. Only use player names from the list provided. {% else %}Do not
+            include articles like "the" at the start of the player name. So if the
+            request is "Play music from Queen on the bedroom Sonos" use "bedroom Sonos"
+            as area name. Besides removing the first article, use exactly what was
+            provided in the request.{% endif %}When no player is mentioned in the
+            voice  request{% if expose_players %} or no player could be matched {%
+            endif %}, use {"players":[]}'
         llm_prompt_outro:
           name: Outro for LLM prompt
+          description: Some final notes with additional explanation for the LLM
           selector:
             text:
               multiline: true
               multiple: false
-          default: >
-            Note that the input query can be in a different language. For
-            the "media_type" the untranslated English terms should be used.
-            In case of a playlist search use the language used in the input.
+          default: 'Note that the input query can be in a different language. For
+            the "media_type" the untranslated English terms should be used, in case
+            of a playlist search use the language used in the input.
 
 
-            The "confidence" field is mandatory and must be one of:
-            - "high" if you are confident about both the media AND the target.
-            - "medium" if you are fairly confident but the room/player name
-              was ambiguous or required fuzzy matching.
-            - "low" if you could not match the room or player to any known
-              name, or the voice input appears to be mostly captured
-              background audio rather than an intentional command.
-
-
-            Remember: voice input often contains speech-to-text errors and
-            may include fragments of song lyrics, TV dialog, or other
-            ambient audio. Focus on the intentional command and ignore noise.
-
-
-            IMPORTANT: You must reply with only the JSON model, nothing before
-            nor after because your response will be processed by a search
-            component of a media player service. So also no code tags.
-            Only the JSON!
-        # ─────────────────────────────────────────────────────────────
+            IMPORTANT: You must reply with only the JSON model, nothing before nor
+            after because your response will be processed by a search component of
+            a media player service. So also no code tags. Only the JSON!'
         llm_prompt:
           name: Legacy LLM prompt setting
-          description: >
-            Legacy field kept for backward compatibility.
-            Will not be used in the automation.
+          description: This field contains the LLM prompt set before the prompt settings
+            were split into multiple parts. By default it will be empty, it will only
+            contain text in case you were using the automation before this LLM prompt
+            settins were split. If this setting contains the prompt, you can use it
+            to copy back changes to the relevant part above, as this prompt setting
+            will not be used in the automation
           selector:
             text:
               multiline: true
               multiple: false
           default: ''
-
 triggers:
 - alias: Trigger to request for music
   trigger: conversation
   command: !input trigger
-
 actions:
-# ─────────────────────────────────────────────────────────────────────
-# STEP 1: Gather base variables
-# ─────────────────────────────────────────────────────────────────────
-- alias: Store input from blueprint in variables
+- alias: Store input from blueprint in variables so they can be used in the prompt
   variables:
-    version: 20250425-modified
+    version: 20250404
     shuffle: '{{ ''shuffle'' in trigger.sentence | lower }}'
     expose_areas: !input expose_areas
     expose_players: !input expose_players
@@ -448,262 +483,124 @@ actions:
       description: !input llm_prompt_media_description
       target: !input llm_prompt_target
       outro: !input llm_prompt_outro
-    area_names: >-
+    area_names: >
+      {% set voice_exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
       {{ integration_entities('music_assistant')
+         | select('in', voice_exposed)
          | map('area_name')
          | reject('none')
+         | unique
          | join(', ') }}
-    player_names: >-
+    player_names: >
+      {% set voice_exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
       {{ integration_entities('music_assistant')
+         | select('in', voice_exposed)
          | map('state_attr', 'friendly_name')
+         | reject('none')
+         | unique
          | join(', ') }}
-
-# ─────────────────────────────────────────────────────────────────────
-# STEP 2: Send request to LLM
-# ─────────────────────────────────────────────────────────────────────
 - alias: Send the request to the LLM
   action: conversation.process
   data:
-    text: "{{ prompt.values() | join('\n\n') }}"
+    text: '{{ prompt.values() | join(''
+
+
+      '') }}'
     agent_id: !input llm_agent
   response_variable: result
-
-# ─────────────────────────────────────────────────────────────────────
-# STEP 3: Parse LLM result and resolve targets
-# ─────────────────────────────────────────────────────────────────────
-- alias: Parse LLM result and resolve target
+- alias: Store relevant part of LLM result in variable and define target
   variables:
-    llm_result: >-
-      {% set raw = result.response.speech.plain.speech %}
-      {% set cleaned = raw.replace('`','').replace('json','',1).strip() %}
-      {{ cleaned | from_json }}
-
+    llm_result: '{{ result.response.speech.plain.speech | from_json }}'
     play_continuously: !input play_continuously
-
     llm_action_data:
       media_id: '{{ llm_result.action_data.media_id }}'
       media_type: '{{ llm_result.action_data.media_type }}'
       artist: '{{ llm_result.action_data.artist | default(''NA'', true) }}'
       album: '{{ llm_result.action_data.album | default(''NA'', true) }}'
-      radio_mode: >-
-        {{ false if play_continuously == 'Never'
-           else play_continuously == 'Always' and llm_result.action_data.media_type != 'radio'
-           or 'NA' }}
-
-    # ── NEW: confidence from LLM ──────────────────────────────────
-    llm_confidence: >-
-      {{ llm_result.get('confidence', 'high') | lower }}
-
-    # ── MODIFIED: resolve players named by the LLM ────────────────
-    # Match LLM-provided player names to actual entity_ids using
-    # fuzzy (case-insensitive substring) matching against MA players
-    llm_target_players: >-
-      {% set players_raw = llm_result.get('target_data', {}).get('players', []) %}
-      {% set players_search = players_raw | join('|') if players_raw is list else players_raw %}
-      {{ integration_entities('music_assistant')
-          | expand
-          | selectattr('name', 'in',
-              player_names.split(', ')
-              | select('search', players_search, ignorecase=true)
-              | list
-            )
-          | map(attribute='entity_id')
-          | select('search', '^media_player.')
-          | list if players_search else [] }}
-
-    # ── MODIFIED: resolve areas to their MAPPED DEFAULT PLAYERS ───
-    # Instead of just passing area_ids, look up each area in the
-    # satellite_player_mapping and use the mapped player entity_id.
-    llm_areas_raw: >-
-      {{ llm_result.get('target_data', {}).get('areas', []) }}
-
-    # Match spoken area names to actual HA area names
-    llm_matched_area_names: >-
-      {% set areas = llm_areas_raw %}
-      {% set areas_search = areas | join('|') if areas is list else areas %}
-      {{ area_names.split(', ')
-         | select('search', areas_search, ignorecase=true)
-         | list if areas_search else [] }}
-
-    # For each matched area, look up its default player in the mapping
-    area_default_players: >-
-      {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
-      {% set ns = namespace(players=[], unmapped_areas=[]) %}
-      {% for area in llm_matched_area_names %}
-        {% set area_key = area | lower | replace(' ', '_') %}
-        {% if area_key in mapping %}
-          {% set ns.players = ns.players + [mapping[area_key]] %}
-        {% else %}
-          {% set ns.unmapped_areas = ns.unmapped_areas + [area] %}
-        {% endif %}
-      {% endfor %}
-      {{ ns.players }}
-
-    unmapped_areas: >-
-      {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
-      {% set ns = namespace(unmapped=[]) %}
-      {% for area in llm_matched_area_names %}
-        {% set area_key = area | lower | replace(' ', '_') %}
-        {% if area_key not in mapping %}
-          {% set ns.unmapped = ns.unmapped + [area] %}
-        {% endif %}
-      {% endfor %}
-      {{ ns.unmapped }}
-
-    # For unmapped areas, find exposed media_players in those areas
-    unmapped_area_available_players: >-
-      {% set exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
-      {% set ns = namespace(players=[]) %}
-      {% for area in unmapped_areas %}
-        {% set aid = area | lower | replace(' ', '_') | area_id %}
-        {% if aid %}
-          {% for entity_id in area_entities(aid) %}
-            {% if entity_id in exposed and entity_id.startswith('media_player.') %}
-              {% set ns.players = ns.players + [entity_id] %}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-      {% endfor %}
-      {{ ns.players }}
-
-    # Was there an explicit target from the LLM?
-    llm_target: >-
-      {{ iif(llm_result.get('target_data', {}).get('players')
-             or llm_result.get('target_data', {}).get('areas')) }}
-
-    # Trigger device fallback (same as original)
-    device_area: >-
-      {{ area_id(trigger.device_id)
-         if area_name(trigger.device_id) in area_names.split(', ') }}
-
+      radio_mode: '{{ false if play_continuously == ''Never'' else play_continuously
+        == ''Always'' and llm_result.action_data.media_type != ''radio'' or ''NA''
+        }}'
+    llm_target_data:
+      entity_id: >
+        {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
+        {% set voice_exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
+        {% set ma_entities = integration_entities('music_assistant') %}
+        {% set areas = llm_result.get('target_data', {}).get('areas', []) %}
+        {% set ns = namespace(resolved=[]) %}
+        {% for area in areas %}
+          {% set area_key = area | lower | replace(' ', '_') %}
+          {% if mapping is mapping and area_key in mapping %}
+            {% set ns.resolved = ns.resolved + [mapping[area_key]] %}
+          {% else %}
+            {% for eid in area_entities(area_key) %}
+              {% if eid in voice_exposed and eid in ma_entities and eid.startswith('media_player.') %}
+                {% set ns.resolved = ns.resolved + [eid] %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+        {% set players = llm_result.get('target_data', {}).get('players', []) %}
+        {% set players_str = players | join('|') if players is list else players %}
+        {% set resolved_players = integration_entities('music_assistant') | expand
+           | selectattr('name', 'in', player_names.split(', ')
+           | select('search', players_str, ignorecase=true) | list)
+           | map(attribute='entity_id')
+           | select('search', '^media_player.')
+           | list if players_str else [] %}
+        {{ (ns.resolved + resolved_players) | select('in', voice_exposed) | unique | list }}
+      area_id: >
+        {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
+        {% set areas = llm_result.get('target_data', {}).get('areas', []) %}
+        {% set ns = namespace(unmapped=[]) %}
+        {% for area in areas %}
+          {% set area_key = area | lower | replace(' ', '_') %}
+          {% if not (mapping is mapping and area_key in mapping) %}
+            {% set ns.unmapped = ns.unmapped + [area] %}
+          {% endif %}
+        {% endfor %}
+        {% set areas_str = ns.unmapped | join('|') if ns.unmapped else '' %}
+        {{ area_names.split(', ')
+           | select('search', areas_str, ignorecase=true)
+           | map('area_id')
+           | list if areas_str else [] }}
+    llm_target: '{{ iif(llm_result.get(''target_data'', {}).get(''players'') or llm_result.get(''target_data'',
+      {}).get(''areas'')) }}'
+    device_area: '{{ area_id(trigger.device_id) if area_name(trigger.device_id) in
+      area_names.split('', '') }}'
     default_player: !input default_player
-
-    # Mapped player for the trigger device's area
-    mapped_player: >-
-      {% set area_key = area_name(trigger.device_id) | default('', true) | lower | replace(' ', '_') %}
+    backup_target: >
       {% set mapping = state_attr('sensor.satellite_player_mapping', 'mapping') or {} %}
-      {{ mapping.get(area_key, '') }}
-
-    # ── MODIFIED: combined target resolution ──────────────────────
-    # Priority:
-    #   1. LLM-matched players (by friendly name)
-    #   2. LLM-matched areas → their mapped default players
-    #   3. LLM unmapped areas → exposed players in those areas
-    #      (if exactly 1, use it; if multiple, we'll ask)
-    #   4. Fallback: trigger device mapped player
-    #   5. Fallback: trigger device area
-    #   6. Fallback: default_player from blueprint input
-
-    # Combine all resolved entity_ids from LLM targets
-    all_llm_players: >-
-      {% set ns = namespace(players=[]) %}
-      {% for p in llm_target_players %}
-        {% set ns.players = ns.players + [p] %}
-      {% endfor %}
-      {% for p in area_default_players %}
-        {% set ns.players = ns.players + [p] %}
-      {% endfor %}
-      {{ ns.players | unique | list }}
-
-    # Are there unmapped areas with multiple player choices?
-    needs_clarification: >-
-      {{ (unmapped_areas | length > 0
-          and unmapped_area_available_players | length > 1
-          and all_llm_players | length == 0)
-         or llm_confidence == 'low' }}
-
-    # If unmapped area has exactly 1 exposed player, auto-select it
-    auto_selected_unmapped: >-
-      {% if unmapped_areas | length > 0
-         and unmapped_area_available_players | length == 1 %}
-        {{ unmapped_area_available_players }}
+      {% set voice_exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
+      {% if device_area %}
+        {% set area_key = area_name(trigger.device_id) | lower | replace(' ', '_') %}
+        {% if mapping is mapping and area_key in mapping and mapping[area_key] in voice_exposed %}
+          {{ dict(entity_id=[mapping[area_key]]) }}
+        {% else %}
+          {{ dict(area_id=[device_area]) }}
+        {% endif %}
+      {% elif default_player %}
+        {{ dict(entity_id=[default_player]) }}
       {% else %}
-        {{ [] }}
-      {% endif %}
-
-    # Final resolved players from LLM (named players + area defaults + auto-selected)
-    resolved_llm_players: >-
-      {% set combined = all_llm_players + auto_selected_unmapped %}
-      {{ combined | unique | list }}
-
-    # Build backup target (when LLM provided no target)
-    backup_target: >-
-      {{ (dict(entity_id=[mapped_player]) if mapped_player)
-         or (dict(area_id=[device_area]) if device_area)
-         or (dict(entity_id=[default_player]) if default_player) }}
-
-    # Final target: use LLM-resolved players if available, else backup
-    target_data: >-
-      {% if llm_target and resolved_llm_players | length > 0 %}
-        {{ dict(entity_id=resolved_llm_players) }}
-      {% elif llm_target and llm_matched_area_names | length > 0
-              and unmapped_areas | length > 0
-              and unmapped_area_available_players | length == 0 %}
-        {# Area was matched but has no mapping and no exposed players #}
         {{ {} }}
-      {% elif llm_target and needs_clarification %}
-        {# Needs clarification - will be handled below #}
-        {{ {} }}
-      {% else %}
-        {{ backup_target | default({}, true) }}
       {% endif %}
-
+    target_data: '{{ (llm_target_data if llm_target else backup_target) | default({},
+      true) }}'
     target: '{{ dict(target_data.items() | selectattr(''1'')) }}'
-
-# ─────────────────────────────────────────────────────────────────────
-# STEP 4: If clarification is needed, build options and respond, then stop
-# ─────────────────────────────────────────────────────────────────────
-- alias: Build clarification options
-  variables:
-    clarification_text: !input clarification_response
-    available_options: >-
-      {% set exposed = state_attr('sensor.voice_exposed_entities', 'entities') or [] %}
-      {% set ns = namespace(names=[]) %}
-      {% for e in exposed if e.startswith('media_player.') %}
-        {% set fname = state_attr(e, 'friendly_name') | default(e, true) %}
-        {% set ns.names = ns.names + [fname] %}
-      {% endfor %}
-      {{ ns.names | join(', ') }}
-
-- alias: Respond with clarification and stop if needed
+- alias: Only try to play music when target was determined
   if:
-    - condition: template
-      value_template: '{{ needs_clarification and not target }}'
+  - alias: Check if it was possible to determine a target
+    condition: template
+    value_template: '{{ iif(target) }}'
   then:
-    - set_conversation_response: >-
-        {{ clarification_text | replace('<options>', available_options) }}
-    - stop: Clarification message sent
-
-# ─────────────────────────────────────────────────────────────────────
-# STEP 5: Play music if we have a target
-# ─────────────────────────────────────────────────────────────────────
-- alias: Play music if target exists
-  if:
-    - condition: template
-      value_template: '{{ iif(target) }}'
-  then:
-    - alias: Play Music based on LLM result
-      block:
-        - alias: Attempt to play music
-          action: music_assistant.play_media
-          data: >-
-            {{ dict(llm_action_data.items() | rejectattr('1', 'eq', 'NA')) }}
-          target: '{{ target }}'
-      rescue:
-        - alias: Tell the user it failed
-          set_conversation_response: >-
-            Sorry, I couldn't find {{ llm_action_data.media_id }} to play.
-            Please check your music library or streaming provider.
-        - stop: Playback failed
-    - alias: Enable/Disable shuffle on a Music Assistant Media Player
-      action: media_player.shuffle_set
-      data:
-        shuffle: '{{ shuffle }}'
-      target: '{{ target }}'
-
-# ─────────────────────────────────────────────────────────────────────
-# STEP 6: Build response variables
-# ─────────────────────────────────────────────────────────────────────
+  - alias: Play Music based on LLM result
+    action: music_assistant.play_media
+    data: '{{ dict(llm_action_data.items() | rejectattr(''1'', ''eq'', ''NA'')) }}'
+    target: '{{ target }}'
+  - alias: Enable/Disable shuffle on a Music Assistant Media Player
+    action: media_player.shuffle_set
+    data:
+      shuffle: '{{ shuffle }}'
+    target: '{{ target }}'
 - alias: Set variables for responses
   variables:
     combine: !input combine_text
@@ -712,53 +609,21 @@ actions:
       only_area: !input area_response
       only_player: !input player_response
       area_player: !input area_and_player_response
-    has_area_names: '{{ llm_matched_area_names | length > 0 }}'
-    has_player_names: '{{ llm_target_players | length > 0 }}'
-    response: >-
-      {% if iif(target) %}
-        {% if has_area_names and has_player_names %}
-          area_player
-        {% elif has_area_names %}
-          only_area
-        {% elif has_player_names or target.get('entity_id') %}
-          only_player
-        {% else %}
-          only_area
-        {% endif %}
-      {% else %}
-        no_target
-      {% endif %}
-    area_list: >-
-      {% if llm_matched_area_names | length > 0 %}
-        {{ llm_matched_area_names }}
-      {% elif target.get('area_id') %}
-        {{ target.get('area_id', []) | map('area_name') | list }}
-      {% else %}
-        {{ [] }}
-      {% endif %}
-    area_info: >-
-      {{ area_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ area_list[-1]
-         if area_list | count > 2
-         else area_list | join(' ' ~ combine ~ ' ') }}
-    player_list: >-
-      {% if target.get('entity_id') %}
-        {{ target.get('entity_id') | map('state_attr', 'friendly_name') | list }}
-      {% else %}
-        {{ [] }}
-      {% endif %}
-    player_info: >-
-      {{ player_list[:-1] | join(', ') ~ ' ' ~ combine ~ ' ' ~ player_list[-1]
-         if player_list | count > 2
-         else player_list | join(' ' ~ combine ~ ' ') }}
-    media_info: >-
-      {{ llm_result.media_description
-         | default(llm_action_data.media_id, true) }}
-
+    response: '{% if iif(target.get(''area_id'') and target.get(''entity_id'')) %}
+      area_player {% elif iif(target.get(''area_id'')) %} only_area {% elif iif(target.get(''entity_id''))
+      %} only_player {% else %} no_target {% endif %}'
+    area_list: '{{ target.get(''area_id'', []) | map(''area_name'') | list }}'
+    area_info: '{{ area_list[:-1] | join('', '') ~ '' '' ~ combine ~ '' '' ~ area_list[-1]
+      if area_list | count > 2 else area_list | join('' '' ~ combine ~ '' '') }}'
+    player_list: '{{ target.get(''entity_id'') | map(''state_attr'', ''friendly_name'')
+      | list }}'
+    player_info: '{{ player_list[:-1] | join('', '') ~ '' '' ~ combine ~ '' '' ~ player_list[-1]
+      if player_list | count > 2 else player_list | join('' '' ~ combine ~ '' '')
+      }}'
+    media_info: '{{ llm_result.media_description | default(llm_action_data.media_id,
+      true) }}'
 - alias: Set response for Assist
-  set_conversation_response: >-
-    {{ responses[response.strip()]
-       | replace('<media_info>', media_info)
-       | replace('<area_info>', area_info)
-       | replace('<player_info>', player_info) }}
-
+  set_conversation_response: '{{ responses[response] | replace(''<media_info>'', media_info)
+    | replace(''<area_info>'', area_info) | replace(''<player_info>'', player_info)
+    }}'
 mode: parallel
