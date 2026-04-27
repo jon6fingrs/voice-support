@@ -538,27 +538,27 @@ actions:
 
     # Match each LLM area against mapping keys (exact slug + fuzzy)
     mapping_matched: >-
-      {% set ns = namespace(players=[], keys=[]) %}
+      {% set ns = namespace(players=[], slugs=[]) %}
       {% for area in llm_areas_raw %}
         {% set slug = area | lower | replace(' ', '_') | replace("'", "") | replace('-', '_') %}
         {% if slug in mapping_table %}
           {% set ns.players = ns.players + [mapping_table[slug]] %}
-          {% set ns.keys = ns.keys + [slug] %}
+          {% set ns.slugs = ns.slugs + [slug] %}
         {% else %}
           {% set inner = namespace(found=false) %}
           {% for key in mapping_table.keys() %}
             {% if not inner.found and (key in slug or slug in key) %}
               {% set ns.players = ns.players + [mapping_table[key]] %}
-              {% set ns.keys = ns.keys + [key] %}
+              {% set ns.slugs = ns.slugs + [key] %}
               {% set inner.found = true %}
             {% endif %}
           {% endfor %}
         {% endif %}
       {% endfor %}
-      {{ {'players': ns.players | unique | list, 'keys': ns.keys | unique | list} }}
+      {{ {'players': ns.players | unique | list, 'slugs': ns.slugs | unique | list} }}
 
-    mapping_matched_players: '{{ mapping_matched.players }}'
-    mapping_matched_keys: '{{ mapping_matched.keys }}'
+    mapping_matched_players: '{{ mapping_matched["players"] }}'
+    mapping_matched_keys: '{{ mapping_matched["slugs"] }}'
 
     # ── SECONDARY: HA area registry (for areas not in mapping) ───
     # Match LLM areas against HA areas with MA players, then look
