@@ -446,7 +446,7 @@ triggers:
 
 actions:
 # ─────────────────────────────────────────────────────────────────────
-# STEP 1: Gather base variables
+# STEP 1: Gather base variables + bail out on TV commands
 # ─────────────────────────────────────────────────────────────────────
 - alias: Store input from blueprint in variables
   variables:
@@ -474,70 +474,47 @@ actions:
          | join(', ') }}
 
 # ─────────────────────────────────────────────────────────────────────
-# STEP 1.5: Intercept TV commands BEFORE calling the LLM
+# STEP 1.5: TV-command guard
 # ─────────────────────────────────────────────────────────────────────
-# "play tv" / "play family room tv" / "play tv in the kitchen" all get
-# intercepted here so they never hit the music LLM.
+# If the query looks like a TV command (e.g. "tv", "family room tv",
+# "the basement television"), abort here. voice_media_controls owns
+# all TV commands via its tv_play / tv_on / tv_off / pause_tv / etc.
+# triggers, so this blueprint should never act on them — even if
+# HassIL routes here by mistake.
 #
-# Room resolution is driven entirely by sensor.satellite_tv_mapping.
-# That same sensor drives your voice media controls automation, so
-# changing the mapping updates both places automatically.
-- alias: Detect TV command and resolve room from satellite_tv_mapping
+# Source of truth for "what counts as a TV-mapped room" is
+# sensor.satellite_tv_mapping (the same sensor voice_media_controls
+# uses). Change that sensor and both behaviors update together.
+- alias: Bail out if this is a TV command
   variables:
     tv_query: "{{ trigger.slots.query | default('') | lower | trim }}"
-    tv_mapping_table: "{{ state_attr('sensor.satellite_tv_mapping', 'mapping') or {} }}"
-
-    # Does this look like a TV-targeted command?
-    # Matches "tv" at the start OR end of the query (not in the middle,
-    # so "play music with tv in the lyrics" is NOT intercepted).
-    is_tv_command: >-
-      {{ tv_query | regex_match(
-        '^((the\s+)?(tv|t\s+v|television|teevee)(\s+.+)?|.+\s+(tv|t\s+v|television|teevee))$'
-      ) }}
-
-    # Find a mapping key whose natural-language room name is mentioned.
-    # We use area_name() so both slug keys ("family_room" → "Family Room")
-    # and UUID keys (your kitchen UUID → "Kitchen") work uniformly.
-    tv_room_from_query: >-
-      {%- set ns = namespace(match='') -%}
-      {%- for k in tv_mapping_table.keys() -%}
-        {%- set display = area_name(k) | default(k | replace('_', ' '), true) | lower -%}
-        {%- if display and display in tv_query and ns.match == '' -%}
-          {%- set ns.match = k -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {{ ns.match }}
-
-    # If no room mentioned in query, use the satellite's own area —
-    # but only if it's actually in the mapping (otherwise we'd send
-    # the script a room it doesn't know how to handle).
-    tv_room: >-
-      {%- if tv_room_from_query -%}{{ tv_room_from_query }}
-      {%- else -%}
-        {%- set sat_area = area_id(trigger.device_id) | default('', true) -%}
-        {%- if sat_area in tv_mapping_table -%}{{ sat_area }}{%- endif -%}
+    tv_mapping_keys: "{{ (state_attr('sensor.satellite_tv_mapping', 'mapping') or {}).keys() | list }}"
+    # Match if query contains "tv"/"television"/"teevee" as a whole word
+    # at the start or end (so "play music with tv in the lyrics" does NOT
+    # match, but "tv", "family room tv", "the tv" all do).
+    is_bare_tv_phrase: >-
+      {{ tv_query | regex_search('(^|\s)(the\s+)?(tv|t\s+v|television|teevee)(\s|$)') | default(false, true) | bool(false) }}
+    # Match if query mentions a TV-mapped area name in combination with tv.
+    # Walks the mapping keys, looking up each area's display name via
+    # area_name() so UUID-keyed areas (like your kitchen) also work.
+    mentions_tv_area: >-
+      {%- set ns = namespace(hit=false) -%}
+      {%- if 'tv' in tv_query or 'television' in tv_query -%}
+        {%- for k in tv_mapping_keys -%}
+          {%- set display = area_name(k) | default(k | replace('_', ' '), true) | lower -%}
+          {%- if display and display in tv_query -%}
+            {%- set ns.hit = true -%}
+          {%- endif -%}
+        {%- endfor -%}
       {%- endif -%}
+      {{ ns.hit }}
+    is_tv_command: "{{ is_bare_tv_phrase or mentions_tv_area }}"
 
-- alias: Route TV commands to the TV control script
-  if:
+- if:
     - condition: template
-      value_template: "{{ is_tv_command and tv_room }}"
+      value_template: "{{ is_tv_command }}"
   then:
-    - action: script.voice_control_for_tvs
-      data:
-        room: "{{ tv_room }}"
-    - set_conversation_response: >-
-        Playing TV in {{ area_name(tv_room) | default(tv_room | replace('_', ' ') | title, true) }}.
-    - stop: "TV command handled"
-
-- alias: TV command but no resolvable room — explain
-  if:
-    - condition: template
-      value_template: "{{ is_tv_command and not tv_room }}"
-  then:
-    - set_conversation_response: >-
-        There's no TV mapped for this room. Try saying which room — for example, "play family room TV".
-    - stop: "TV command but no resolvable room"
+    - stop: "TV command — handled by voice_media_controls"
 
 # ─────────────────────────────────────────────────────────────────────
 # STEP 2: Send request to LLM
